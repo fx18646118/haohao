@@ -1,0 +1,142 @@
+ROSTemplateFormatVersion: '2015-09-01'
+Transform: 'Aliyun::Serverless-2018-04-03'
+Description: Tunee Backend API - 会员系统后端服务
+
+Parameters:
+  ServiceName:
+    Type: String
+    Default: tunee-api
+    Description: 服务名称
+  
+  MongoDBUri:
+    Type: String
+    Description: MongoDB 连接字符串
+    
+  JwtSecret:
+    Type: String
+    Description: JWT 密钥
+    
+  WechatAppId:
+    Type: String
+    Description: 微信小程序 AppID
+    
+  WechatAppSecret:
+    Type: String
+    Description: 微信小程序 AppSecret
+    
+  WechatPayMchId:
+    Type: String
+    Description: 微信支付商户号
+    
+  WechatPayKey:
+    Type: String
+    Description: 微信支付 API 密钥
+    
+  AlipayAppId:
+    Type: String
+    Description: 支付宝 AppID
+
+Resources:
+  # 函数计算服务
+  TuneeService:
+    Type: 'Aliyun::Serverless::Service'
+    Properties:
+      Description: Tunee 会员系统后端服务
+      Role: 'acs:ram::${ALIYUN_ACCOUNT_ID}:role/AliyunFCDefaultRole'
+      LogConfig:
+        Project: tunee-api-logs
+        Logstore: api-logs
+      VpcConfig:
+        VpcId: ${VPC_ID}
+        VSwitchIds:
+          - ${VSWITCH_ID}
+        SecurityGroupId: ${SECURITY_GROUP_ID}
+      
+    # API 函数
+    TuneeApiFunction:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: index.handler
+        Runtime: custom
+        CodeUri: ./
+        Description: Tunee API 主函数
+        Timeout: 30
+        MemorySize: 512
+        EnvironmentVariables:
+          NODE_ENV: production
+          MONGODB_URI: ${MongoDBUri}
+          JWT_SECRET: ${JwtSecret}
+          WECHAT_APP_ID: ${WechatAppId}
+          WECHAT_APP_SECRET: ${WechatAppSecret}
+          WECHAT_PAY_MCH_ID: ${WechatPayMchId}
+          WECHAT_PAY_KEY: ${WechatPayKey}
+          WECHAT_PAY_NOTIFY_URL: https://${Domain}/api/payment/wechat/notify
+          ALIPAY_APP_ID: ${AlipayAppId}
+          ALIPAY_NOTIFY_URL: https://${Domain}/api/payment/alipay/notify
+        CustomRuntimeConfig:
+          Command:
+            - node
+            - server.js
+        
+      Events:
+        # HTTP 触发器
+        HttpTrigger:
+          Type: HTTP
+          Properties:
+            AuthType: ANONYMOUS
+            Methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+
+  # 自定义域名
+  CustomDomain:
+    Type: 'Aliyun::Serverless::CustomDomain'
+    Properties:
+      DomainName: ${Domain}
+      Protocol: HTTP
+      RouteConfig:
+        Routes:
+          '/*':
+            ServiceName: 
+              Ref: TuneeService
+            FunctionName: 
+              Ref: TuneeApiFunction
+
+  # 日志项目
+  LogProject:
+    Type: 'Aliyun::SLS::Project'
+    Properties:
+      Description: Tunee API 日志项目
+      
+  # 日志库
+  LogStore:
+    Type: 'Aliyun::SLS::Logstore'
+    Properties:
+      ProjectName:
+        Ref: LogProject
+      LogstoreName: api-logs
+      TTL: 30
+      ShardCount: 2
+
+Outputs:
+  ServiceName:
+    Value:
+      Ref: TuneeService
+    Description: 服务名称
+  FunctionName:
+    Value:
+      Ref: TuneeApiFunction
+    Description: 函数名称
+  Endpoint:
+    Value:
+      Fn::Join:
+        - ''
+        - - 'https://'
+          - Fn::GetAtt:
+              - TuneeApiFunction
+              - Url
+    Description: 函数访问地址
