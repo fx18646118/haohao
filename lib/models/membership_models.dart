@@ -64,7 +64,6 @@ extension MembershipLevelExtension on MembershipLevel {
   }
 }
 
-import 'package:flutter/material.dart';
 
 /// 用户信息模型（含会员信息）
 class UserProfile {
