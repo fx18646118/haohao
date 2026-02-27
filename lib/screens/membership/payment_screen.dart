@@ -123,7 +123,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
         }
       }
     });
-
+  }
+  
   void _showPaymentSuccess() {
     showDialog(
       context: context,
