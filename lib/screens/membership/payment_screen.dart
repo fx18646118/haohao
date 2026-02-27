@@ -115,9 +115,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
     // 5分钟后停止轮询
     Timer(const Duration(minutes: 5), () {
       _statusCheckTimer?.cancel();
-      if (mounted && provider.currentOrder?.isPaid != true) {
-        setState(() => _isProcessing = false);
-        _showError('支付超时，请重试');
+      if (mounted) {
+        final provider = context.read<MembershipProvider>();
+        if (provider.currentOrder?.isPaid != true) {
+          setState(() => _isProcessing = false);
+          _showError('支付超时，请重试');
+        }
       }
     });
   }
