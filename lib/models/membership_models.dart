@@ -1,7 +1,6 @@
 // 会员系统模型 - 用户会员信息、套餐、订单等
 
-import 'package:flutter/foundation.dart';
-
+import 'package:flutter/foundation.dart';import 'package:flutter/material.dart';
 /// 会员等级枚举
 enum MembershipLevel {
   free,      // 免费用户
